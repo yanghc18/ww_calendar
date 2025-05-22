@@ -10,6 +10,11 @@ class WorkWeekCalendarWidget:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Work Week Calendar")
+        self.root.configure(bg='#2E2E2E') # Set root background
+
+        # Define fonts
+        self.font_primary = ('Arial', 9)
+        self.font_header = ('Arial', 10, 'bold')
         
         # Initialize current view date
         self.current_view = date.today()
@@ -21,43 +26,43 @@ class WorkWeekCalendarWidget:
         self.root.overrideredirect(True)
         
         # Create main frame
-        self.frame = tk.Frame(self.root, bg='white', relief='solid', borderwidth=1)
+        self.frame = tk.Frame(self.root, bg='#2E2E2E', relief='flat')
         self.frame.pack(padx=2, pady=2)
         
         # Add title bar with close button
-        self.title_bar = tk.Frame(self.frame, bg='lightgray', relief='raised', height=20)
+        self.title_bar = tk.Frame(self.frame, bg='#2E2E2E', relief='flat', height=20)
         self.title_bar.pack(fill='x')
         self.title_bar.pack_propagate(False)
         
         # Add title label
-        self.title_label = tk.Label(self.title_bar, text="Work Week Calendar", bg='lightgray')
+        self.title_label = tk.Label(self.title_bar, text="Work Week Calendar", bg='#2E2E2E', fg='#E0E0E0', font=self.font_primary)
         self.title_label.pack(side='left', padx=5)
         
         # Add close button
-        self.close_button = tk.Button(self.title_bar, text='×', command=self.root.quit,
-                                    bg='lightgray', bd=0, padx=5)
+        self.close_button = tk.Button(self.title_bar, text='✕', command=self.root.quit,
+                                    bg='#2E2E2E', fg='#E0E0E0', bd=0, padx=5, pady=2, font=self.font_primary, relief='flat', activebackground='#3C3C3C', activeforeground='#E0E0E0')
         self.close_button.pack(side='right')
         
         # Create calendar display
-        self.calendar_frame = tk.Frame(self.frame, bg='white')
+        self.calendar_frame = tk.Frame(self.frame, bg='#2E2E2E')
         self.calendar_frame.pack(padx=10, pady=5)
         
         # Create navigation frame
-        self.nav_frame = tk.Frame(self.frame, bg='white')
+        self.nav_frame = tk.Frame(self.frame, bg='#2E2E2E')
         self.nav_frame.pack(fill='x', padx=5, pady=5)
         
         # Add navigation buttons
-        self.prev_month = tk.Button(self.nav_frame, text="◀", command=self.previous_month,
-                                  bg='white', bd=1, width=4)
-        self.prev_month.pack(side='left', padx=2)
+        self.prev_month = tk.Button(self.nav_frame, text="←", command=self.previous_month,
+                                  bg='#2E2E2E', fg='#E0E0E0', bd=0, width=4, font=self.font_primary, relief='flat', activebackground='#3C3C3C', activeforeground='#E0E0E0', pady=2)
+        self.prev_month.pack(side='left', padx=5)
         
         self.today_button = tk.Button(self.nav_frame, text="Today", command=self.go_to_today,
-                                    bg='white', bd=1)
-        self.today_button.pack(side='left', padx=2, expand=True)
+                                    bg='#2E2E2E', fg='#E0E0E0', bd=0, font=self.font_primary, relief='flat', activebackground='#3C3C3C', activeforeground='#E0E0E0', pady=2)
+        self.today_button.pack(side='left', padx=5, expand=True)
         
-        self.next_month = tk.Button(self.nav_frame, text="▶", command=self.next_month,
-                                  bg='white', bd=1, width=4)
-        self.next_month.pack(side='right', padx=2)
+        self.next_month = tk.Button(self.nav_frame, text="→", command=self.next_month,
+                                  bg='#2E2E2E', fg='#E0E0E0', bd=0, width=4, font=self.font_primary, relief='flat', activebackground='#3C3C3C', activeforeground='#E0E0E0', pady=2)
+        self.next_month.pack(side='right', padx=5)
         
         # Bind mouse events for dragging
         self.title_bar.bind('<Button-1>', self.start_drag)
@@ -129,10 +134,10 @@ class WorkWeekCalendarWidget:
         # Create headers
         days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
         for i, day in enumerate(days):
-            tk.Label(self.calendar_frame, text=day, bg='white',
-                    width=4).grid(row=0, column=i+1)
-        tk.Label(self.calendar_frame, text='WW', bg='white',
-                width=4).grid(row=0, column=0)
+            tk.Label(self.calendar_frame, text=day, bg='#2E2E2E', fg='#E0E0E0',
+                    width=4, font=self.font_primary).grid(row=0, column=i+1)
+        tk.Label(self.calendar_frame, text='WW', bg='#2E2E2E', fg='#E0E0E0',
+                width=4, font=self.font_primary).grid(row=0, column=0)
         
         # Get calendar for current month
         cal = calendar.monthcalendar(year, month)
@@ -166,7 +171,7 @@ class WorkWeekCalendarWidget:
                 
                 # Show work week number
                 tk.Label(self.calendar_frame, text=f"WW{ww}",
-                        bg='white').grid(row=week_idx+1, column=0)
+                        bg='#2E2E2E', fg='#E0E0E0', font=self.font_primary).grid(row=week_idx+1, column=0)
                 
                 # Show days
                 for day_idx, day in enumerate(week):
@@ -176,26 +181,30 @@ class WorkWeekCalendarWidget:
                             # This is a day from previous month
                             prev_day = prev_month_days - (week.index(next(iter([d for d in week if d != 0]), 0)) - day_idx - 1)
                             text = str(prev_day)
-                            bg_color = 'lightgray'  # Different background for previous/next month
+                            bg_color = '#3C3C3C'  # Different background for previous/next month
+                            fg_color = '#E0E0E0'
                         else:
                             # This is a day from next month
                             next_day = day_idx - week.index(next(iter([d for d in week if d != 0][::-1]), 0))
                             text = str(next_day)
-                            bg_color = 'lightgray'  # Different background for previous/next month
+                            bg_color = '#3C3C3C'  # Different background for previous/next month
+                            fg_color = '#E0E0E0'
                     else:
                         text = str(day)
+                        fg_color = '#E0E0E0'
                         # Highlight today
-                        bg_color = 'lightblue' if (day == today.day and 
-                                                 month == today.month and 
-                                                 year == today.year) else 'white'
+                        if (day == today.day and month == today.month and year == today.year):
+                            bg_color = '#00BFA5' # Accent color for today
+                        else:
+                            bg_color = '#2E2E2E' # Primary background for other days
                     
-                    tk.Label(self.calendar_frame, text=text, bg=bg_color,
-                            width=4).grid(row=week_idx+1, column=day_idx+1)
+                    tk.Label(self.calendar_frame, text=text, bg=bg_color, fg=fg_color,
+                            width=4, font=self.font_primary).grid(row=week_idx+1, column=day_idx+1)
         
         # Add month/year header
         month_name = calendar.month_name[month]
         tk.Label(self.calendar_frame, text=f"{month_name} {year}",
-                bg='white', font=('Arial', 10, 'bold')).grid(row=7, column=0, columnspan=8)
+                bg='#2E2E2E', fg='#E0E0E0', font=self.font_header).grid(row=7, column=0, columnspan=8)
 
 def main():
     app = WorkWeekCalendarWidget()
