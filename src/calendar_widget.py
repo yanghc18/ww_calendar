@@ -1,4 +1,25 @@
 import tkinter as tk
+import platform # Added for OS detection
+
+# OS-specific imports with try-except
+try:
+    import win32gui, win32con, win32api
+except ImportError:
+    win32gui = None # Or print a message
+    print("Windows specific libraries (pywin32) not found. Skipping Windows-specific features.")
+
+try:
+    from AppKit import NSApp, NSWindow, kCGDesktopIconWindowLevel #, NSWindowCollectionBehaviorCanJoinAllSpaces, NSWindowCollectionBehaviorStationary, NSWindowCollectionBehaviorIgnoresCycle
+except ImportError:
+    NSApp = None # Or print a message
+    print("macOS specific libraries (PyObjC) not found. Skipping macOS-specific features.")
+
+try:
+    from Xlib import display, X
+except ImportError:
+    display = None # Or print a message
+    print("Linux specific libraries (python-xlib) not found. Skipping Linux-specific features.")
+
 from datetime import date, timedelta
 import calendar
 from main import get_work_week_number
@@ -18,9 +39,10 @@ class WorkWeekCalendarWidget:
         
         # Initialize current view date
         self.current_view = date.today()
+        self.is_on_top = True # State variable for pin mode
         
-        # Make window stay on top
-        self.root.attributes('-topmost', True)
+        # Make window stay on top (This will be controlled by apply_pin_mode later)
+        # self.root.attributes('-topmost', True) 
         
         # Remove window decorations for a cleaner look
         self.root.overrideredirect(True)
@@ -38,10 +60,17 @@ class WorkWeekCalendarWidget:
         self.title_label = tk.Label(self.title_bar, text="Work Week Calendar", bg='#2E2E2E', fg='#E0E0E0', font=self.font_primary)
         self.title_label.pack(side='left', padx=5)
         
-        # Add close button
+        # Add close button (packed first to be on the far right)
         self.close_button = tk.Button(self.title_bar, text='✕', command=self.root.quit,
                                     bg='#2E2E2E', fg='#E0E0E0', bd=0, padx=5, pady=2, font=self.font_primary, relief='flat', activebackground='#3C3C3C', activeforeground='#E0E0E0')
         self.close_button.pack(side='right')
+
+        # Add pin toggle button (packed next, will appear to the left of the close button)
+        self.pin_toggle_button = tk.Button(self.title_bar, text="Pin Bottom", command=self.toggle_pin_mode,
+                                           bg='#2E2E2E', fg='#E0E0E0', relief='flat', bd=0,
+                                           font=self.font_primary, activebackground='#3C3C3C',
+                                           activeforeground='#E0E0E0', padx=5, pady=2) # Added pady to match close button
+        self.pin_toggle_button.pack(side='right')
         
         # Create calendar display
         self.calendar_frame = tk.Frame(self.frame, bg='#2E2E2E')
@@ -73,6 +102,195 @@ class WorkWeekCalendarWidget:
         
         # Set up auto-refresh every hour
         self.root.after(3600000, self.update_calendar)  # 3600000 ms = 1 hour
+
+        # Apply the initial pin mode (e.g., set to always on top by default)
+        self.apply_pin_mode()
+
+    def toggle_pin_mode(self):
+        """Toggles the always-on-top state of the window."""
+        self.is_on_top = not self.is_on_top
+        self.apply_pin_mode() # This method will be defined later
+
+    def apply_pin_mode(self):
+        """Applies the window layering based on the is_on_top state."""
+        if self.is_on_top:
+            self.pin_toggle_button.config(text="Pin Bottom")
+            # self.undo_os_specific_bottom_settings() # To be created in a future step
+            self.root.attributes('-topmost', True)
+            print("Mode: Pin Top")
+        else:
+            self.pin_toggle_button.config(text="Pin Top")
+            self.root.attributes('-topmost', False)
+            self.root.lower() # General Tkinter attempt to lower
+
+            os_name = platform.system().lower()
+            print(f"Applying pin bottom for OS: {os_name}")
+            if os_name == "windows":
+                self.set_windows_always_on_bottom()
+            elif os_name == "darwin":  # macOS
+                self.set_macos_always_on_bottom()
+            elif os_name == "linux":
+                self.set_linux_always_on_bottom()
+            else:
+                print(f"Pin to bottom OS-specifics not implemented for: {os_name}")
+            print("Mode: Pin Bottom")
+
+    def undo_os_specific_bottom_settings(self):
+        os_name = platform.system().lower()
+        print(f"Undoing OS-specific bottom settings for: {os_name}")
+
+        if os_name == "windows":
+            try:
+                # For Windows, self.root.attributes('-topmost', True) is often sufficient
+                # to bring the window back on top, overriding a previous HWND_BOTTOM.
+                # SetWindowPos with HWND_TOPMOST or HWND_NOTOPMOST could also be used if needed.
+                # For now, we rely on the subsequent call to self.root.attributes('-topmost', True)
+                # in apply_pin_mode which should bring it to the top.
+                print("Windows: Relied on subsequent '-topmost', True to undo bottom setting.")
+                pass # Explicitly doing nothing here, as '-topmost', True handles it.
+            except Exception as e:
+                print(f"Windows: Error during undo_os_specific_bottom_settings: {e}")
+
+        elif os_name == "darwin": # macOS
+            if not NSApp:
+                print("macOS: PyObjC not available for undo.")
+                return
+            try:
+                # NSNormalWindowLevel is typically 0
+                NSNormalWindowLevel = 0 
+                
+                title = self.root.title()
+                app_windows = NSApp.windows()
+                target_window = None
+                for w in app_windows:
+                    if w.title() == title:
+                        target_window = w
+                        break
+                
+                if target_window:
+                    target_window.setLevel_(NSNormalWindowLevel)
+                    print("macOS: Attempted to set window level to NSNormalWindowLevel (0).")
+                else:
+                    print("macOS: Could not find NSWindow to undo bottom setting.")
+            except Exception as e:
+                print(f"macOS: Error during undo_os_specific_bottom_settings: {e}")
+
+        elif os_name == "linux":
+            if not display:
+                print("Linux: python-xlib not available for undo.")
+                return
+            try:
+                d = display.Display()
+                win_id = self.root.winfo_id()
+                # window = d.create_resource_object('window', win_id) # Not directly needed for ClientMessage
+
+                atom_wm_state = d.intern_atom('_NET_WM_STATE')
+                atom_below = d.intern_atom('_NET_WM_STATE_BELOW')
+
+                # Data for ClientMessage: action (0=remove), atom1, atom2 (0 if none), source indication
+                # _NET_WM_STATE_REMOVE = 0
+                event_data = [0,  # Action: _NET_WM_STATE_REMOVE
+                              atom_below, 
+                              0,  # No second property atom
+                              1,  # Source indication: Application
+                              0]  # Unused
+                
+                evt = Xlib.protocol.event.ClientMessage(
+                    window=win_id,
+                    client_type=atom_wm_state,
+                    data=(32, event_data) 
+                )
+                # Send to root window with appropriate mask
+                d.send_event(d.screen().root, evt, event_mask=Xlib.X.SubstructureRedirectMask | Xlib.X.SubstructureNotifyMask)
+                
+                # If _NET_WM_WINDOW_TYPE_DESKTOP was set, revert to _NET_WM_WINDOW_TYPE_NORMAL
+                # (Assuming it wasn't, based on previous steps, so this is commented)
+                # atom_window_type = d.intern_atom('_NET_WM_WINDOW_TYPE')
+                # atom_normal = d.intern_atom('_NET_WM_WINDOW_TYPE_NORMAL')
+                # window.change_property(atom_window_type, X.ATOM, 32, [atom_normal], X.PropModeReplace)
+                
+                d.sync()
+                print("Linux: Attempted to send ClientMessage to remove _NET_WM_STATE_BELOW.")
+            except Exception as e:
+                print(f"Linux: Error during undo_os_specific_bottom_settings: {e}")
+        else:
+            print(f"Undo pin to bottom not specifically implemented for {os_name}")
+
+
+    # Placeholder methods for OS-specific window behavior
+    def set_windows_always_on_bottom(self):
+        if not win32gui:
+            print("Windows: pywin32 not available.")
+            return
+        try:
+            hwnd = self.root.winfo_id()
+            # Ensure window style allows it to be a child or non-topmost
+            # style = win32api.GetWindowLong(hwnd, win32con.GWL_STYLE)
+            # style &= ~win32con.WS_POPUP # Remove WS_POPUP if present
+            # style |= win32con.WS_CHILD # Add WS_CHILD, though this might be too aggressive. HWND_BOTTOM might be better.
+                                         # For now, let's focus on SetWindowPos with HWND_BOTTOM
+            # win32api.SetWindowLong(hwnd, win32con.GWL_STYLE, style) # Re-evaluate if SetWindowPos alone is not enough
+
+            # Attempt to place it at the bottom of Z-order
+            win32gui.SetWindowPos(hwnd, win32con.HWND_BOTTOM, 0, 0, 0, 0, 
+                                  win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_NOACTIVATE)
+            print("Windows: Attempted SetWindowPos with HWND_BOTTOM")
+        except Exception as e:
+            print(f"Windows: Failed to set window to bottom: {e}")
+
+    def set_macos_always_on_bottom(self):
+        if not NSApp:
+            print("macOS: PyObjC not available.")
+            return
+        try:
+            # This part is tricky, getting NSWindow from Tkinter root.
+            # The title matching approach:
+            title = self.root.title()
+            app_windows = NSApp.windows()
+            target_window = None
+            for w in app_windows:
+                if w.title() == title:
+                    target_window = w
+                    break
+            
+            if target_window:
+                target_window.setLevel_(kCGDesktopIconWindowLevel) 
+                # kCGDesktopWindowLevel is even lower, might be too low (behind desktop icons)
+                # kCGDesktopIconWindowLevel is often preferred for "gadget" type windows.
+                
+                # Optional: Set collection behavior for spaces and exposé/mission control
+                # from AppKit import NSWindowCollectionBehaviorCanJoinAllSpaces, NSWindowCollectionBehaviorStationary, NSWindowCollectionBehaviorIgnoresCycle # Import these if used
+                # target_window.setCollectionBehavior_(NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorStationary | NSWindowCollectionBehaviorIgnoresCycle)
+                print("macOS: Attempted to set window level to kCGDesktopIconWindowLevel")
+            else:
+                print("macOS: Could not find NSWindow with matching title.")
+        except Exception as e:
+            print(f"macOS: Failed to set window to bottom: {e}")
+
+    def set_linux_always_on_bottom(self):
+        if not display:
+            print("Linux: python-xlib not available.")
+            return
+        try:
+            d = display.Display()
+            win_id = self.root.winfo_id()
+            window = d.create_resource_object('window', win_id)
+
+            # Set _NET_WM_STATE_BELOW
+            atom_wm_state = d.intern_atom('_NET_WM_STATE')
+            atom_below = d.intern_atom('_NET_WM_STATE_BELOW')
+            # The property data must be a list of integers (atoms)
+            window.change_property(atom_wm_state, X.ATOM, 32, [atom_below], X.PropModeReplace)
+
+            # Optionally, also set _NET_WM_WINDOW_TYPE_DESKTOP
+            # atom_window_type = d.intern_atom('_NET_WM_WINDOW_TYPE')
+            # atom_desktop = d.intern_atom('_NET_WM_WINDOW_TYPE_DESKTOP')
+            # window.change_property(atom_window_type, X.ATOM, 32, [atom_desktop], X.PropModeReplace) # Keep this commented for now, _NET_WM_STATE_BELOW is primary goal
+            
+            d.sync()
+            print("Linux: Attempted to set _NET_WM_STATE_BELOW")
+        except Exception as e:
+            print(f"Linux: Failed to set window to bottom: {e}")
     
     def start_drag(self, event):
         """Store initial position for drag operation."""
