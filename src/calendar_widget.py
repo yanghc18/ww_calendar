@@ -40,12 +40,14 @@ class WorkWeekCalendarWidget:
         # Initialize current view date
         self.current_view = date.today()
         self.is_on_top = True # State variable for pin mode
+        self.current_alpha = tk.DoubleVar(value=0.8) # State variable for window transparency
         
         # Make window stay on top (This will be controlled by apply_pin_mode later)
         # self.root.attributes('-topmost', True) 
         
         # Remove window decorations for a cleaner look
         self.root.overrideredirect(True)
+        # self.root.attributes('-alpha', 0.8) # Set window transparency (Static - to be replaced by dynamic control)
         
         # Create main frame
         self.frame = tk.Frame(self.root, bg='#2E2E2E', relief='flat')
@@ -92,6 +94,15 @@ class WorkWeekCalendarWidget:
         self.next_month = tk.Button(self.nav_frame, text="→", command=self.next_month,
                                   bg='#2E2E2E', fg='#E0E0E0', bd=0, width=4, font=self.font_primary, relief='flat', activebackground='#3C3C3C', activeforeground='#E0E0E0', pady=2)
         self.next_month.pack(side='right', padx=5)
+
+        # Add Alpha/Transparency Slider
+        self.alpha_slider = tk.Scale(self.nav_frame, orient=tk.HORIZONTAL, from_=0.2, to=1.0,
+                                     resolution=0.05, variable=self.current_alpha,
+                                     command=self.update_transparency, # Method to be created
+                                     length=150, showvalue=0, bg='#2E2E2E', fg='#E0E0E0',
+                                     troughcolor='#3C3C3C', highlightbackground='#2E2E2E',
+                                     activebackground='#4A4A4A')
+        self.alpha_slider.pack(side='bottom', fill='x', pady=5, padx=5)
         
         # Bind mouse events for dragging
         self.title_bar.bind('<Button-1>', self.start_drag)
@@ -105,6 +116,8 @@ class WorkWeekCalendarWidget:
 
         # Apply the initial pin mode (e.g., set to always on top by default)
         self.apply_pin_mode()
+        # Apply the initial transparency setting
+        self.update_transparency(self.current_alpha.get())
 
     def toggle_pin_mode(self):
         """Toggles the always-on-top state of the window."""
@@ -216,6 +229,11 @@ class WorkWeekCalendarWidget:
         else:
             print(f"Undo pin to bottom not specifically implemented for {os_name}")
 
+    def update_transparency(self, value):
+        """Updates the window transparency based on the slider value."""
+        alpha_value = float(value)
+        self.root.attributes('-alpha', alpha_value)
+        # print(f"Updated transparency to: {alpha_value}") # Optional: for debugging
 
     # Placeholder methods for OS-specific window behavior
     def set_windows_always_on_bottom(self):
