@@ -1,16 +1,22 @@
 # Work Week Calendar Widget
 
-A Python-based calendar widget that displays work weeks and dates in a clean, modern interface.
+A sleek, modern Python-based calendar widget designed to display work weeks and dates with an intuitive, customizable interface. Stay organized with this handy desktop utility!
 
 ## Features
 
-- Displays current month with work week numbers
-- Shows previous and next month dates for better context
-- Highlights today's date
-- Draggable window interface
-- Always-on-top display
-- Navigation between months
-- Auto-refreshes every hour
+- **Modern Dark-Themed UI**: A visually appealing and clear interface.
+- **Work Week Display**: Clearly shows work week numbers alongside dates.
+- **Comprehensive Calendar View**: Displays the current month, with days from the previous and next months for context.
+- **Today's Date Highlight**: Easily spot the current day.
+- **Custom Draggable Window**: A custom title bar allows easy window repositioning.
+- **Toggleable Window Layering**:
+    - **Always on Top**: Keep the calendar visible above all other applications.
+    - **Always on Bottom**: Attempt to place the calendar on the desktop layer (OS-dependent behavior, see 'Platform-Specific Notes').
+    - Easily switch between modes with a dedicated pin button.
+- **Adjustable Transparency**: Control the window's opacity with a slider for seamless desktop integration.
+- **Month Navigation**: Navigate to previous/next months using arrow buttons ("←", "→").
+- **"Today" Button**: Quickly jump back to the current month.
+- **Auto-Refresh**: Calendar data (e.g., 'today' highlight) auto-refreshes periodically.
 
 ## Setup
 
@@ -34,6 +40,25 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### Optional Dependencies for Advanced Features
+
+The "Always on Bottom" window mode relies on platform-specific libraries. These are not included in `requirements.txt` to allow the core application to run on any OS without requiring unnecessary installations. If you wish to use the "Always on Bottom" feature, you may need to install the following:
+
+-   **Windows**: `pywin32`
+    ```bash
+    pip install pywin32
+    ```
+-   **macOS**: `pyobjc-core` and `pyobjc-framework-cocoa`
+    ```bash
+    pip install pyobjc-core pyobjc-framework-cocoa
+    ```
+-   **Linux**: `python-xlib`
+    ```bash
+    pip install python-xlib
+    ```
+
+If these libraries are not present, the "Always on Bottom" mode will attempt to lower the window using standard Tkinter methods, but true desktop-layer integration may not occur. The application will print a message to the console if a required library for an OS-specific feature is missing. Transparency effects also rely on OS and window manager capabilities.
+
 ## Running the Calendar Widget
 
 ### Windows
@@ -47,11 +72,13 @@ python src/calendar_widget.py
 
 ## Usage
 
-- Use the "◀" and "▶" buttons to navigate between months
+- Use the "←" and "→" buttons to navigate between months
 - Click "Today" to return to the current month
 - Drag the title bar to move the window
 - Click the × button to close the calendar
 - The calendar automatically refreshes every hour
+- Use the pin button to toggle between "Always on Top" and "Always on Bottom" modes.
+- Use the slider at the bottom to adjust window transparency.
 
 ## Project Structure
 
